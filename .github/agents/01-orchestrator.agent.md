@@ -291,6 +291,11 @@ Step 7:   Documentation   →                                   →  07-*.md
 Post:     Lessons         →                                   →  09-lessons-learned.*
 ```
 
+> **AI Workloads**: When `01-requirements.md` contains `## AI Workload Requirements`,
+> Steps 2-4 automatically activate AI-specific conditional phases (Phase 1.6 in Architect,
+> AI policy filters in Governance, AI Landing Zone components in Design).
+> No orchestrator routing changes needed — triggers are embedded in each agent.
+
 At workflow start, initialize `09-lessons-learned.json` per
 `lesson-collection.instructions.md`. After Step 7, generate the
 lessons narrative as a completion artifact.

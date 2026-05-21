@@ -1,32 +1,48 @@
-# APEX Repo Changes Log — HelpdeskAI PoC Session
+# APEX Repo Changes Log
 
-**Date:** May 19, 2026
+**Repository:** `roda-infraops-hack` (forked from APEX Accelerator)
 **Branch:** `main`
-**Triggered by:** Gap analysis of [`apex-improvement-backlog.md`](apex-improvement-backlog.md)
-**Scope:** P2 and P3 only. P1, P4, CT are out of scope for this session.
+**Goal:** Transform APEX into an Azure AI-first platform engineering system — every agent
+in the workflow understands AI workloads natively, without wasting tokens on non-AI projects.
 
 ---
 
-## Summary
+## What Was Missing from Original APEX
 
-| Backlog Item                                       | Status        | Files Changed               |
-| -------------------------------------------------- | ------------- | --------------------------- |
-| P2 — Sync `microsoft-foundry` SKILL.md             | ✅ Done       | 2 files (1 new, 1 modified) |
-| P3 — Add AI services AVM patterns                  | ✅ Done       | 2 files (1 new, 1 modified) |
-| P1 — Add Foundry MCP to `.vscode/mcp.json`         | ☐ Not started | —                           |
-| P4 — Import `azure-reliability` + `entra-agent-id` | ☐ Not started | —                           |
-| CT — Correct deprecated Hub terminology            | ☐ Not started | —                           |
+The upstream APEX accelerator is a general-purpose Azure IaC orchestration system. It had
+**no native awareness of AI workloads**. Specifically:
+
+| Gap                                    | Impact                                                                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| No AI-specific requirements gathering  | Agents couldn't capture PTU/PAYG preferences, token throughput, RAG sources, or content safety needs                     |
+| No AI architecture decision phase      | Architect agent had no framework for PTU vs PAYG, AI gateway patterns, or RAG architecture choices                       |
+| No AI governance policy awareness      | Governance agent didn't filter for `Microsoft.CognitiveServices/*` or `Microsoft.MachineLearningServices/*` policies     |
+| No AI diagram guidance                 | Design agent didn't know to include AI Landing Zone components (AI Services, AI Search, APIM gateway, private endpoints) |
+| No AI-specific Bicep patterns          | CodeGen agent would hallucinate AVM module paths for AI resources                                                        |
+| No Foundry agent optimization skill    | No mechanism for eval-driven parameter sweeps (temperature, model, instructions)                                         |
+| No AI challenger lens                  | Adversarial review couldn't catch AI-specific gaps (content safety, token cost, RBAC role IDs)                           |
+| No EU data residency rules for AI SKUs | `GlobalStandard` SKU routes inference globally — violating GDPR for regulated workloads                                  |
+| No compressed AI skill variants        | Loading full `azure-ai-architect` SKILL.md at every step wastes tokens on context that's only partially needed           |
 
 ---
 
-## P2 — Sync `microsoft-foundry` SKILL.md
+## Changes Made — Summary
 
-### New file: `.github/skills/microsoft-foundry/foundry-agent/faos-optimize/faos-optimize.md`
+| #   | Change                                                                                        | Date   | Files                 |
+| --- | --------------------------------------------------------------------------------------------- | ------ | --------------------- |
+| 1   | [Foundry FAOS Optimization sub-skill](#1-foundry-faos-optimization-sub-skill)                 | May 19 | 2 (1 new, 1 modified) |
+| 2   | [AI Services AVM Bicep patterns](#2-ai-services-avm-bicep-patterns)                           | May 19 | 2 (1 new, 1 modified) |
+| 3   | [EU Data Residency Fix (GlobalStandard → DataZoneStandard)](#3-eu-data-residency-fix)         | May 20 | 4 modified            |
+| 4   | [Conditional AI-Architecture Challenger Lens](#4-conditional-ai-architecture-challenger-lens) | May 20 | 7 (1 new, 6 modified) |
+| 5   | [End-to-End AI Workflow Integration](#5-end-to-end-ai-workflow-integration)                   | May 20 | 7 (2 new, 5 modified) |
 
-**Why:** The `faos-optimize` sub-skill was completely absent from APEX. It is required for
-HelpdeskAI's RAG accuracy eval loop (WAF Reliability NFR).
+---
 
-**What it contains:**
+## 1. Foundry FAOS Optimization Sub-Skill
+
+**Gap addressed:** No mechanism for eval-driven parameter sweeps on AI agents.
+
+### New: `.github/skills/microsoft-foundry/foundry-agent/faos-optimize/faos-optimize.md`
 
 - `<!-- ref:faos-optimize-v1 -->` reference tag
 - **When to Use** — four trigger conditions (eval loops, temperature tuning, batch eval,
@@ -42,9 +58,7 @@ HelpdeskAI's RAG accuracy eval loop (WAF Reliability NFR).
 - **WAF Reliability Mapping** table — maps RAG accuracy ≥ 80% NFR and groundedness to
   specific FAOS parameters with concrete guidance
 
-### Modified file: `.github/skills/microsoft-foundry/SKILL.md`
-
-Three additions:
+### Modified: `.github/skills/microsoft-foundry/SKILL.md`
 
 1. **Sub-Skills table** (line ~30): added two new rows after the existing `rbac` row:
 
@@ -59,21 +73,18 @@ Three additions:
 
 3. **Reference Index** (line ~126): added entry:
 
-   ```
+   ```text
    | `foundry-agent/faos-optimize/faos-optimize.md` | FAOS Optimization (eval-driven tuning) |
    ```
 
 ---
 
-## P3 — Add AI Services AVM Patterns to `azure-bicep-patterns`
+## 2. AI Services AVM Bicep Patterns
 
-### New file: `.github/skills/azure-bicep-patterns/references/ai-services-patterns.md`
+**Gap addressed:** CodeGen agent had no AVM module references for AI resources — would
+hallucinate paths or emit raw resource definitions.
 
-**Why:** The `06b-Bicep CodeGen` agent uses `azure-bicep-patterns` as its primary AVM module
-reference. Without AI patterns it would hallucinate module paths or emit raw resource
-definitions — violating the AVM-first mandate.
-
-**What it contains:**
+### New: `.github/skills/azure-bicep-patterns/references/ai-services-patterns.md`
 
 - `<!-- ref:ai-services-patterns-v1 -->` reference tag
 
@@ -117,13 +128,13 @@ definitions — violating the AVM-first mandate.
 
 - **Learn More** links to AVM registry GitHub entries for all five modules
 
-### Modified file: `.github/skills/azure-bicep-patterns/SKILL.md`
+### Modified: `.github/skills/azure-bicep-patterns/SKILL.md`
 
 Three additions:
 
 1. **Quick Reference table** (line ~26): added row:
 
-   ```
+   ```text
    | Azure AI Services Patterns | AI workloads: AI Services, AI Search, Cosmos DB, Container Apps |
      [ai-services-patterns](references/ai-services-patterns.md) |
    ```
@@ -137,54 +148,17 @@ Three additions:
 
 3. **Reference Index** (line ~98): added entry:
 
-   ```
+   ```text
    | [ai-services-patterns.md](references/ai-services-patterns.md) |
      AVM modules, RBAC, and private DNS for AI Services, AI Search, Cosmos DB, Container Apps |
    ```
 
 ---
 
-## Backlog file updated
+## 3. EU Data Residency Fix
 
-**Modified file:** `agent-output/helpdeskAI/apex-improvement-backlog.md`
-
-P2 and P3 rows in the summary table changed from `☐` to `✅`.
-
----
-
-## What Was NOT Changed
-
-| Item                                  | Reason                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `.vscode/mcp.json`                    | P1 out of scope — requires verifying `@azure/ai-foundry-mcp` package name against upstream |
-| `.github/skills/azure-reliability/`   | P4 out of scope                                                                            |
-| `.github/skills/entra-agent-id/`      | P4 out of scope                                                                            |
-| `tools/registry/count-manifest.json`  | P4 prerequisite — not needed until P4 is executed                                          |
-| All `.github/agents/*.agent.md` files | CT out of scope                                                                            |
-| All existing `infra/bicep/` templates | CT out of scope                                                                            |
-
----
-
-## Validation Steps (Recommended)
-
-```bash
-# Markdown lint — catches line-length and heading violations
-npm run lint:md
-
-# Skills format — validates SKILL.md frontmatter
-npm run lint:skills-format
-
-# Full suite
-npm run validate:all
-```
-
----
-
-## CareFlow AI — EU Data Residency Fix (GlobalStandard → DataZoneStandard)
-
-**Date:** May 20, 2026
-**Triggered by:** Governance review of `04-implementation-plan.md` — `GlobalStandard` Azure OpenAI SKU routes inference globally and violates GDPR Art.44 + NEN 7510 §13 for Dutch hospital PHI.
-**Scope:** `agent-output/careflow-ai/` + `azure-ai-architect` and `azure-bicep-patterns` skills.
+**Gap addressed:** `GlobalStandard` Azure OpenAI SKU routes inference globally — violating
+GDPR Art.44 + NEN 7510 §13 for Dutch hospital PHI in the CareFlow AI project.
 
 ### What Changed (4 files)
 
@@ -212,12 +186,12 @@ npm run validate:all
 
 ---
 
-## Conditional AI-Architecture Challenger Lens
+## 4. Conditional AI-Architecture Challenger Lens
 
-**Date:** June 2025
-**Triggered by:** Gap analysis of `04-implementation-plan.md` for CareFlow AI against the
-`azure-ai-architect` skill — 9 gaps found that the existing challenger lenses would not catch.
-**Scope:** New conditional `ai-architecture` challenger lens wired across Steps 4, 5b, and 5t.
+**Gap addressed:** Adversarial review couldn't catch AI-specific gaps. The CareFlow AI
+plan passed standard review but missed: content safety filters, RBAC role IDs, APIM gateway
+policies, Defender for AI, AI egress firewall rules, token cost breakdown, and more (9 gaps
+total).
 
 ### Why
 
@@ -269,3 +243,97 @@ Generic security/reliability/cost lenses lack the specificity to catch AI worklo
 - **`adds_pass: true`**: Increases max pass count rather than replacing an existing lens
 - **Checklist + skill dual-source**: Checklist provides structured items with severity;
   skill provides deeper domain reasoning for nuanced judgments
+
+---
+
+## 5. End-to-End AI Workflow Integration
+
+**Gap addressed:** Even with skills and patterns available, the core agents (Requirements →
+Architect → Governance → Design → Orchestrator) had no mechanism to detect AI workloads
+and activate AI-specific logic. The skills existed in isolation — nothing wired them into
+the pipeline.
+
+**Design principle:** Deterministic activation via a single trigger (`## AI Workload
+Requirements` H2 section in `01-requirements.md`) rather than fuzzy keyword matching.
+Non-AI projects pay zero token cost — all AI logic is conditional.
+
+### What Changed (7 files)
+
+| File                                                 | Change                                                                                                                                                                                                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/skills/azure-ai-architect/SKILL.digest.md`  | **New** — compressed skill variant (~80 lines) with Quick Reference, Key Decision tables (PTU vs PAYG, Landing Zone, Security Gates), WAF Augmentation table. Loaded at Architect level instead of full SKILL.md.                   |
+| `.github/skills/azure-ai-architect/SKILL.minimal.md` | **New** — ultra-compact pointer file (~15 lines). Purpose statement + 5 reference paths + non-negotiable gates. Loaded at >80% context pressure.                                                                                    |
+| `.github/agents/02-requirements.agent.md`            | Added AI Workload Detection (Phase 2) + AI Workload NFRs (Phase 3). Scans for AI keywords → outputs `## AI Workload Requirements` H2 with PTU/PAYG preference, TPM targets, RAG sources, content safety, data residency.            |
+| `.github/agents/03-architect.agent.md`               | Added `### Conditional Skill: AI Workload` (loads `SKILL.digest.md` if trigger present) + `## Phase 1.6: AI Architecture Decisions` (PTU/PAYG, AI Gateway, RAG Architecture, Content Safety Gates). Sits after multi-tenancy (1.5). |
+| `.github/agents/04g-governance.agent.md`             | Added AI Workload Policy Filter — scans for `Microsoft.CognitiveServices/*`, `Microsoft.MachineLearningServices/*`, `Microsoft.Search/*` namespaces in policy assignments when AI trigger is present.                               |
+| `.github/agents/04-design.agent.md`                  | Added AI Landing Zone diagram guidance — AI services zone placement, private endpoint topology, APIM gateway position in architecture diagrams.                                                                                     |
+| `.github/agents/01-orchestrator.agent.md`            | Added note documenting that AI conditional phases auto-activate via `## AI Workload Requirements` presence.                                                                                                                         |
+
+### How It Works
+
+```text
+User describes AI workload
+        │
+        ▼
+┌─────────────────────────────┐
+│ 02-Requirements Agent       │  Detects AI keywords → emits
+│ Phase 2: AI Detection       │  "## AI Workload Requirements" H2
+│ Phase 3: AI NFRs            │  with PTU/PAYG, TPM, safety, etc.
+└─────────────────────────────┘
+        │
+        ▼  (H2 trigger present in 01-requirements.md)
+┌─────────────────────────────┐
+│ 03-Architect Agent          │  Loads SKILL.digest.md (not full)
+│ Conditional: AI Workload    │  Executes Phase 1.6: AI decisions
+└─────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────┐
+│ 04g-Governance Agent        │  Filters for CognitiveServices/
+│ AI Policy Filter            │  MachineLearningServices/Search
+└─────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────┐
+│ 04-Design Agent             │  Includes AI Landing Zone
+│ AI Diagram Guidance         │  components in architecture diagrams
+└─────────────────────────────┘
+```
+
+### Token Efficiency
+
+| Variant            | Size       | When Loaded                                  |
+| ------------------ | ---------- | -------------------------------------------- |
+| `SKILL.md` (full)  | ~400 lines | Only by dedicated AI subagents or deep dives |
+| `SKILL.digest.md`  | ~80 lines  | Architect phase (conditional on AI trigger)  |
+| `SKILL.minimal.md` | ~15 lines  | Any agent at >80% context pressure           |
+| No load            | 0 lines    | Non-AI projects — zero overhead              |
+
+### Trigger Keywords
+
+Any of these in user requirements activates the AI pathway:
+`Azure OpenAI`, `AI Search`, `AI Services`, `Foundry`, `RAG`, `embedding`,
+`LLM`, `AI agent`, `Copilot`, `Document Intelligence`
+
+---
+
+## Validation
+
+All changes pass the project validation suite:
+
+```bash
+npm run lint:agent-frontmatter   # Agent YAML frontmatter
+npm run lint:skills-format       # SKILL.md format
+npm run lint:md                  # Markdown linting
+npm run validate:all             # Full suite
+```
+
+---
+
+## Remaining Backlog (Not Yet Implemented)
+
+| Item                                                     | Priority | Reason Deferred                                                          |
+| -------------------------------------------------------- | -------- | ------------------------------------------------------------------------ |
+| Add Foundry MCP to `.vscode/mcp.json`                    | P1       | Requires verifying `@azure/ai-foundry-mcp` package name against upstream |
+| Import `azure-reliability` + `entra-agent-id` skills     | P4       | Adds new skill files — lower priority                                    |
+| Correct deprecated Hub terminology in existing templates | CT       | Sweep across all existing infra/bicep templates                          |

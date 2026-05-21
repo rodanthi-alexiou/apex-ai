@@ -128,6 +128,10 @@ do NOT load them at startup.
 - Save ADRs to `agent-output/{project}/03-des-adr-NNNN-{title}.md`
 - Save cost estimates to `agent-output/{project}/03-des-cost-estimate.md`
 - Include all Azure resources from the architecture in diagrams
+- For AI workloads (when `01-requirements.md` contains `## AI Workload Requirements`):
+  include AI Landing Zone components — Azure OpenAI, AI Search, AI Services private endpoints,
+  APIM as AI Gateway (if selected), Content Safety, and data ingestion pipelines.
+  Group AI services in a dedicated "AI Services" zone within the diagram.
 - Use Fabric icons for Fabric-native services when the architecture includes Microsoft Fabric
 - Keep the canvas structured and intentional, with enough internal spacing that
   the diagram reads as a designed architecture artifact rather than a compressed sketch

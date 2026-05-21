@@ -180,6 +180,7 @@ live Azure calls entirely. This phase runs only if Phase 0.4 did NOT short-circu
    - Copy `.preview.md` to `04-governance-constraints.md` — treat it as freshly
      generated. Do NOT reuse any prior annotated markdown from the agent-output folder.
    - Proceed directly to Phase 2 (Generate Artifacts / validation).
+
 6. If the baseline file is missing, eligibility fails, or the user chooses live
    discovery, proceed to Phase 0.5.
 
@@ -256,6 +257,19 @@ only if the user explicitly asks to keep Defender-for-Cloud auto-assignments
 **Auto-proceed**: After discover.py or render_cached_governance.py exits 0
 (`COMPLETE`), proceed directly to Phase 2 without asking the user any questions.
 The only user interaction point is the Phase 3 Approval Gate.
+
+### AI Workload Policy Filter
+
+If `01-requirements.md` contains `## AI Workload Requirements` or `ai_workload: true`,
+pay special attention to policies in these namespaces when annotating the governance artifact:
+
+- `Microsoft.CognitiveServices/*` — Azure OpenAI, AI Services, Content Safety
+- `Microsoft.MachineLearningServices/*` — AI Foundry, ML workspaces
+- `Microsoft.Search/*` — AI Search
+
+Flag any Deny/Audit policies that restrict these resource types (e.g., public network access
+restrictions on Cognitive Services, allowed SKU policies, private endpoint requirements).
+Note these in the `04-governance-constraints.md` annotation as AI-specific blockers.
 
 ### Phase 2: Generate Artifacts
 

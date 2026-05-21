@@ -110,7 +110,7 @@ in a single form:
 Run `apex-recall show <project> --json` for full project context. Do not read `00-session-state.json` directly.
 
 - **My step**: 2
-- **Sub-steps**: `phase_1_prereqs` → `phase_1.5_tenancy` (conditional) → `phase_2_waf` →
+- **Sub-steps**: `phase_1_prereqs` → `phase_1.5_tenancy` (conditional) → `phase_1.6_ai` (conditional) → `phase_2_waf` →
   `phase_2.5_compacted` → `phase_3_cost` →
   `phase_4_challenger` → `phase_5_artifact`
 - **Checkpoints**: `apex-recall checkpoint <project> 2 <phase_name> --json`
@@ -142,6 +142,16 @@ SaaS, tenant isolation, or shared infrastructure for multiple customers:
    WAF checklist, AI patterns, search isolation patterns
 
 Then insert **Phase 1.5: Tenancy Model Selection** (below) before the WAF assessment.
+
+### Conditional Skill: AI Workload
+
+If `01-requirements.md` contains `## AI Workload Requirements` OR mentions
+Azure OpenAI, AI Search, AI Services, Foundry, RAG, embedding, LLM, or AI agent:
+
+6. **Read** `.github/skills/azure-ai-architect/SKILL.digest.md` — PTU/PAYG decisions,
+   token cost projection, AI security gates, resource model, gateway patterns
+
+Then insert **Phase 1.6: AI Architecture Decisions** (below) after tenancy model selection.
 
 ## DO / DON'T
 
@@ -192,6 +202,31 @@ resource topology, and cost estimation. Carry the tenancy model through all
 subsequent phases.
 
 **Checkpoint**: `apex-recall checkpoint <project> 2 phase_1.5_tenancy --json`
+
+## Phase 1.6: AI Architecture Decisions (Conditional — AI Workload Only)
+
+Skip this phase entirely if `01-requirements.md` does NOT contain `## AI Workload Requirements`.
+
+Use `askQuestions` to present the AI architecture decision tree:
+
+- **PTU vs PAYG**: Based on stated TPM from requirements — PTU if >100K TPM sustained,
+  PAYG if experimentation/burst, hybrid for mixed workloads
+- **AI Gateway Pattern**: APIM as AI Gateway (semantic caching, token rate limiting,
+  content safety) vs direct endpoint access
+- **RAG Architecture**: AI Search index strategy (per-tenant vs shared), embedding model selection
+- **Content Safety Gates**: Azure AI Content Safety integration level (block/flag/log)
+
+Record each decision:
+`apex-recall decide <project> --decision "AI deployment: <PTU|PAYG|Hybrid>" --rationale "<why>" --step 2 --json`
+`apex-recall decide <project> --decision "AI gateway: <APIM|Direct>" --rationale "<why>" --step 2 --json`
+
+The AI decisions inform:
+
+- WAF scoring (Reliability: RPO for AI indexes, Performance: token latency P99)
+- Cost estimation (PTU reserved units vs PAYG token pricing)
+- Security assessment (private endpoints for AI services, content safety gates)
+
+**Checkpoint**: `apex-recall checkpoint <project> 2 phase_1.6_ai --json`
 
 ## Core Workflow
 

@@ -196,6 +196,19 @@ Include `multitenancy: true/false` in the output document.
 If not clearly applicable (e.g., internal tool, single-purpose service), default to `false`
 and do NOT ask the question.
 
+**AI Workload Detection** — ask in Phase 2 (after workload pattern is known):
+
+If the detected workload pattern or user description mentions AI, machine learning,
+LLMs, RAG, embeddings, intelligent agents, Azure OpenAI, AI Search, Foundry, or
+Document Intelligence, add 1 question to the Phase 2 `askQuestions` call:
+
+- _"Does this workload include AI/ML components (e.g., Azure OpenAI, AI Search, embeddings, RAG pipelines, AI agents)?"_
+  Options: **Yes** (AI workload — will collect AI-specific NFRs in Phase 3),
+  **No** (no AI components).
+
+Include `ai_workload: true/false` in the output document.
+If not clearly applicable, default to `false` and do NOT ask the question.
+
 **IaC Tool Preference** — ask in Phase 2 (after workload pattern is known):
 
 Use `askQuestions` — 1 question: IaC tool (Bicep recommended, Terraform).
@@ -232,6 +245,23 @@ For N-Tier pattern, add question about application layers (`multiSelect: true`, 
 **Azure Services in Scope** — present as `multiSelect: true` based on detected workload pattern.
 Pre-select recommended services (set `recommended: true`) from the Service Recommendation Matrix.
 Allow user to add/remove services. Use business-friendly labels with Azure names in parentheses.
+
+**AI Workload NFRs** — ask in Phase 3 (after Azure services are selected), ONLY if `ai_workload: true`:
+
+If AI services are in scope (Azure OpenAI, AI Search, AI Services, Foundry, Document Intelligence),
+add these questions to a follow-up `askQuestions` call:
+
+- _Deployment model preference?_ Options: **PTU** (predictable throughput, reserved capacity),
+  **PAYG** (pay-as-you-go, burst/experimentation), **Unsure** (architect will recommend)
+- _Expected token throughput (TPM)?_ Options: `<10K`, `10K–100K`, `100K–1M`, `1M+`
+- _RAG data sources?_ (`multiSelect: true`) Options: Documents/PDFs, Databases, APIs, Real-time feeds, None
+- _Content safety requirements?_ Options: **Public-facing inference** (strict content filtering),
+  **Internal only** (standard filtering)
+- _Data residency / zero-data-retention?_ Options: **Zero-data-retention required** (no prompt logging),
+  **Standard data handling** (Azure default retention)
+
+Include responses as `## AI Workload Requirements` H2 section in the output document.
+This section triggers downstream AI-specific phases in the Architect and Planner agents.
 
 ## Phase 4: Security & Compliance — CALL `askQuestions`
 
