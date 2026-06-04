@@ -38,6 +38,34 @@ Design checklist: https://azure.github.io/AI-Landing-Zones/architecture/design-c
 If YES → brownfield pattern; identify which shared services the AI LZ will reuse.
 If NO → greenfield pattern; the AI LZ must provision all networking dependencies.
 
+### When AI LZ Cannot Be Deployed
+
+Enterprise customers may have restrictions that block adopting the AI Landing Zone reference
+architecture (centralized governance mandates, existing platform LZ policies, subscription
+lockdowns). When AI LZ deployment is blocked, apply the WAF/CAF fallback controls below and
+record shared-service dependencies in `04-governance-constraints.md` under
+`## Platform Team Dependencies`.
+
+| AI LZ Control           | Item | WAF/CAF Fallback                                                                  |
+| ----------------------- | ---- | --------------------------------------------------------------------------------- |
+| AI LZ VNet + NSGs       | N-R4 | Use customer's existing platform LZ VNet; coordinate NSG rules with platform team |
+| AI LZ DDoS              | N-R1 | Reuse platform LZ DDoS Standard plan; document as platform team dependency        |
+| AI LZ Azure Firewall    | N-R7 | Route AI egress through central hub firewall via UDR; document required FQDNs     |
+| AI LZ Private DNS Zones | N-R8 | Use central Private DNS Zones from platform LZ; add AI service DNS records        |
+| AI LZ Bastion           | N-R2 | Reuse central Bastion service; AI developer access via existing jump box          |
+| AI LZ APIM gateway      | N-R6 | Deploy APIM in platform hub or reuse existing APIM; see ai-gateway-patterns.md    |
+| Greenfield AI LZ        | —    | Brownfield pattern; all shared services delegated to platform team hand-off       |
+
+**Minimum WAF baseline — applies regardless of whether AI LZ is deployed:**
+
+- ✅ Private endpoints for all PaaS AI services (`publicNetworkAccess: Disabled`) — N-R3
+- ✅ Managed Identity on all AI services + `disableLocalAuth: true` — I-R3, I-R6
+- ✅ Defender for AI enabled on AI Services and AI Search — S-R1
+- ✅ Diagnostic settings to Log Analytics workspace for all AI resources — M-R4
+- ✅ Content safety filters configured on all public-facing inference endpoints — G-R4
+- ✅ RBAC with least privilege; no API key distribution — I-R5
+- ✅ Azure Policy `Audit` effect for model catalog governance — G-R1, G-R5
+
 ---
 
 ## Resource Organization

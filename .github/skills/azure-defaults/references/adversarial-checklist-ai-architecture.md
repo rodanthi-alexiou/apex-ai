@@ -29,6 +29,7 @@ Loaded by `challenger-review-subagent` when `review_focus = "ai-architecture"`.
 | AI-05 | PTU vs PAYG decision explicitly documented with rationale                     | Section or decision record states deployment type with justification (token volume, latency SLA) | `must_fix`   |
 | AI-06 | Token cost projection as separate line item in cost estimate                  | Monthly token cost estimate (input/output tokens × price per 1K tokens)                          | `should_fix` |
 | AI-07 | Model deployment SKU specified (GlobalStandard, Standard, ProvisionedManaged) | Deployment configuration includes SKU name and capacity                                          | `should_fix` |
+| AI-26 | EU-regulated workloads (GDPR / data residency mandate) use `DataZoneStandard` or `DataZoneProvisioned`, not `GlobalStandard` | When compliance requirements include GDPR or EU data residency: deployment SKU is `DataZoneStandard` (PAYG) or `DataZoneProvisioned` (PTU); `GlobalStandard` explicitly rejected with documented rationale | `must_fix`   |
 
 ## Security & Content Safety
 
@@ -39,6 +40,8 @@ Loaded by `challenger-review-subagent` when `review_focus = "ai-architecture"`.
 | AI-10 | Content safety filters enabled for public-facing inference endpoints        | Content safety configuration mentioned, or explicit statement that endpoint is internal-only                              | `should_fix` |
 | AI-11 | Microsoft Defender for AI enabled (or explicitly scoped out with rationale) | Defender plan reference or documented exception                                                                           | `should_fix` |
 | AI-12 | Outbound network restriction (Azure Firewall or NSG) for AI compute         | Firewall/NSG rules limiting AI service egress, or VNet integration with service endpoints                                 | `should_fix` |
+| AI-27 | Threat model references MITRE ATLAS and OWASP Generative AI Top 10 for public-facing inference endpoints | Architecture assessment or threat model section acknowledges AI-specific attack vectors (prompt injection, model inversion, data poisoning) for any public-facing endpoint | `should_fix` |
+| AI-28 | Prompt shielding + output monitoring explicitly enabled on public inference endpoints | Architecture states prompt shields configured via Azure AI Content Safety (distinct from standard category filters); output monitoring referenced | `should_fix` |
 
 ## Identity & Access
 
@@ -47,6 +50,7 @@ Loaded by `challenger-review-subagent` when `review_focus = "ai-architecture"`.
 | AI-13 | Managed Identity for all AI service access (no API keys in code)       | RBAC role assignments listed; no connection strings or key references                                                             | `must_fix`   |
 | AI-14 | Specific RBAC roles identified (not generic Contributor)               | Roles like `Cognitive Services OpenAI User`, `Search Index Data Contributor`, `Search Index Data Reader` with role definition IDs | `should_fix` |
 | AI-15 | AI Services → AI Search grounding uses `Search Index Data Reader` role | Cross-service RBAC for on-your-data / RAG grounding access                                                                        | `should_fix` |
+| AI-25 | `disableLocalAuth: true` set on AI Services AND AI Search (key-based access explicitly disabled) | Resource definitions or IaC explicitly set `disableLocalAuth: true` on AI Services and `disableLocalAuth: true; authOptions: null` on AI Search — Managed Identity usage alone is insufficient | `must_fix`   |
 
 ## AI Gateway & Traffic Management
 
@@ -71,6 +75,13 @@ Loaded by `challenger-review-subagent` when `review_focus = "ai-architecture"`.
 | AI-22 | AI-specific diagnostic settings (token usage, latency, error rates) | Diagnostic settings resource targeting AI Services with metrics/logs categories | `should_fix` |
 | AI-23 | Application Insights or equivalent for AI request tracing           | APM integration for tracking inference requests end-to-end                      | `suggestion` |
 | AI-24 | Cost alerts for token consumption anomalies                         | Budget alerts or anomaly detection tied to AI Services consumption              | `suggestion` |
+| AI-30 | Model and data drift monitoring addressed in observability plan     | Monitoring section references Foundry evaluations, custom eval pipeline, or equivalent for tracking model output quality over time (M-R5) | `should_fix` |
+
+## Governance
+
+| #     | Check                                                                          | Expected Evidence                                                                                                                                           | Severity     |
+| ----- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| AI-29 | Azure Policy model catalog governance referenced (minimum `Audit` effect)      | Architecture assessment or governance section mentions Azure Policy initiative for allowed OpenAI model versions; `Audit` effect minimum, `Deny` before prod sign-off (G-R5) | `should_fix` |
 
 ---
 

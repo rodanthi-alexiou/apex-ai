@@ -1,34 +1,17 @@
 {
   "servers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    },
     "azure-pricing": {
       "type": "stdio",
       "command": "${workspaceFolder}/tools/mcp-servers/azure-pricing/.venv/bin/python",
-      "args": ["-m", "azure_pricing_mcp"],
-      "cwd": "${workspaceFolder}/tools/mcp-servers/azure-pricing/src",
-      "env": {
-        "AZURE_PRICING_HTTP_POOL_SIZE": "20",
-        "AZURE_PRICING_HTTP_POOL_PER_HOST": "10",
-        "AZURE_PRICING_DEDUP_TTL": "300",
-        "AZURE_PRICING_DEDUP_MAX_ENTRIES": "512"
-      }
+      "args": [
+        "-m",
+        "azure_pricing_mcp"
+      ],
+      "cwd": "${workspaceFolder}/tools/mcp-servers/azure-pricing/src"
     },
-    "terraform": {
-      "type": "stdio",
-      "command": "/go/bin/terraform-mcp-server",
-      "args": ["stdio", "--toolsets", "registry"],
-      "env": {}
-    },
-    "microsoft-learn": {
+    "github": {
       "type": "http",
-      "url": "https://learn.microsoft.com/api/mcp?maxTokenBudget=4000"
-    },
-    "astro-docs": {
-      "type": "http",
-      "url": "https://mcp.docs.astro.build/mcp"
+      "url": "https://api.githubcopilot.com/mcp/"
     },
     "drawio": {
       "type": "stdio",
@@ -40,12 +23,6 @@
         "--cached-only",
         "${workspaceFolder}/tools/mcp-servers/drawio/src/index.ts"
       ]
-    },
-    // Azure MCP Server — includes Microsoft Foundry tools (agents, models, knowledge indexes)
-    "azure": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@azure/mcp@latest", "server", "start"]
     }
   }
 }

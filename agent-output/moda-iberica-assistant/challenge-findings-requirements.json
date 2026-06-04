@@ -1,0 +1,161 @@
+{
+  "review_metadata": {
+    "artifact_path": "agent-output/moda-iberica-assistant/01-requirements.md",
+    "artifact_type": "requirements",
+    "pass_number": 1,
+    "review_focus": "comprehensive",
+    "reviewer": "challenger-review-subagent",
+    "timestamp": "2026-05-28T16:30:00Z"
+  },
+  "summary": {
+    "overall_assessment": "The requirements artifact is well-structured with good coverage of functional capabilities, compliance frameworks, and operational parameters. However, it contains several critical architectural ambiguities and untested assumptions that, if unresolved, will cause the architecture agent to make incompatible or risky decisions. The most dangerous issues are: (1) a build-vs-buy decision that is simultaneously open and pre-decided, (2) an irreconcilable tension between zero-data-retention and compliance-mandated conversation log retention, (3) an unachievable 99.95% SLA given component SLA ceilings, and (4) no CAF landing zone with a production subscription never mentioned.",
+    "total_findings": 15,
+    "must_fix": 6,
+    "should_fix": 6,
+    "suggestion": 3,
+    "waf_coverage": {
+      "reliability": "partial",
+      "security": "partial",
+      "cost": "partial",
+      "operational_excellence": "partial",
+      "performance": "partial"
+    }
+  },
+  "findings": [
+    {
+      "id": "REQ-001",
+      "severity": "must_fix",
+      "title": "Build-vs-buy decision is simultaneously open and pre-decided",
+      "description": "The artifact lists Microsoft Foundry Agent Service as in scope while simultaneously listing 'Copilot Studio vs custom build' as an open risk. These are mutually exclusive architectural paths.",
+      "waf_pillar": "operational_excellence",
+      "recommendation": "Resolve the build-vs-buy decision as a prerequisite to architecture. Document chosen path with rationale.",
+      "evidence": "Open Risks mentions Copilot Studio vs custom build + AI Services lists Foundry Agent Service"
+    },
+    {
+      "id": "REQ-002",
+      "severity": "must_fix",
+      "title": "Zero-data-retention contradicts 90-day conversation log retention",
+      "description": "Zero-data-retention for Azure OpenAI and 90-day conversation log retention are architecturally incompatible unless application-layer logging is explicitly specified.",
+      "waf_pillar": "security",
+      "recommendation": "Explicitly state conversation logs are captured at application layer (Cosmos DB) before Azure OpenAI call. Zero-data-retention applies only to Azure OpenAI service-side logging.",
+      "evidence": "Data Residency: Zero-data-retention + Conversation logs: 90 days retention"
+    },
+    {
+      "id": "REQ-003",
+      "severity": "must_fix",
+      "title": "No production subscription or CAF landing zone defined",
+      "description": "Current state is dev subscriptions only with no CAF landing zone. Production workload with 99.95% SLA, private endpoints, VNet, and DORA compliance cannot deploy into a dev subscription.",
+      "waf_pillar": "operational_excellence",
+      "recommendation": "Add explicit in-scope item: Provision production subscription with CAF-aligned landing zone. This is on the critical path for Oct 2026.",
+      "evidence": "Current State: existing Azure tenant with dev subscriptions only, no CAF landing zone"
+    },
+    {
+      "id": "REQ-004",
+      "severity": "must_fix",
+      "title": "99.95% SLA target is unachievable with single-region Azure OpenAI",
+      "description": "Azure OpenAI SLA is 99.9%. The system SLA is bounded by the weakest critical dependency. Additionally, failover region is listed but cross-region replication is marked as not required — a contradiction.",
+      "waf_pillar": "reliability",
+      "recommendation": "Either reduce SLA target to 99.9% (achievable single-region) or require active-passive cross-region pattern with Azure OpenAI endpoints in both regions.",
+      "evidence": "SLA target 99.95% + Cross-region Replication: Not required + Failover Region: germanywestcentral"
+    },
+    {
+      "id": "REQ-005",
+      "severity": "must_fix",
+      "title": "GPT-5 dependency has no fallback model — quota risk could block launch",
+      "description": "GPT-5 quota in swedencentral requires 4-8 weeks advance request. No fallback model (GPT-4o) is specified. If quota denied, October launch is jeopardised.",
+      "waf_pillar": "reliability",
+      "recommendation": "Add fallback chain: Primary GPT-5 if quota secured by July 2026; Fallback: GPT-4o. Initiate quota request at project kickoff.",
+      "evidence": "Model Preference: GPT-5 requested (subject to availability) + no fallback specified"
+    },
+    {
+      "id": "REQ-006",
+      "severity": "must_fix",
+      "title": "4-month timeline with no phased delivery plan",
+      "description": "Complex AI system with 5 integrations, 4 compliance frameworks, and trilingual AI targeted for single big-bang October launch. No MVP scope reduction or pilot strategy defined.",
+      "waf_pillar": "operational_excellence",
+      "recommendation": "Define phased delivery: Phase 1 (MVP Aug 2026) web-only, product search + FAQ, ES/PT; Phase 2 (Oct 2026) omnichannel, all FRs, Catalan, associate mode.",
+      "evidence": "Timeline: June 2026 → October 2026 + Complexity: complex + no milestone section"
+    },
+    {
+      "id": "REQ-007",
+      "severity": "should_fix",
+      "title": "DORA applicability unverified — retailer is not a financial entity",
+      "description": "DORA applies to financial entities. A fashion retailer is not subject to DORA unless it operates embedded financial services (BNPL, credit cards).",
+      "waf_pillar": "security",
+      "recommendation": "Validate DORA applicability with legal/compliance team. If not applicable, remove. If applicable, expand section.",
+      "evidence": "DORA — Applicable (readiness phase) with no justification for applicability to a retailer"
+    },
+    {
+      "id": "REQ-008",
+      "severity": "should_fix",
+      "title": "Store associate mode underspecified — connectivity, token lifetime, audit logging",
+      "description": "No connectivity resilience requirement for store tablets, no session token lifetime, no audit logging for associate access to customer PII.",
+      "waf_pillar": "security",
+      "recommendation": "Specify connectivity requirement, Entra ID token lifetime (8-hour shift-aligned), and mandatory audit logging for associate PII access.",
+      "evidence": "Store Associate mode with elevated access but no connectivity or audit requirements"
+    },
+    {
+      "id": "REQ-009",
+      "severity": "should_fix",
+      "title": "Integration compound SLA analysis absent",
+      "description": "Five integrations at 99.9% each give compound availability ~99.5% if all required simultaneously. No degraded mode behaviour defined.",
+      "waf_pillar": "reliability",
+      "recommendation": "Define degraded mode per integration outage. Classify integrations as Tier 1 (required) vs Tier 2 (graceful degradation).",
+      "evidence": "All 5 integrations listed at 99.9% SLA with no compound analysis"
+    },
+    {
+      "id": "REQ-010",
+      "severity": "should_fix",
+      "title": "Budget unvalidated against service pricing — Black Friday spike cost unmodelled",
+      "description": "Rough ceiling estimate of listed services approaches or exceeds €30K at peak load before Black Friday traffic multiplication.",
+      "waf_pillar": "cost",
+      "recommendation": "Require Step 2 to include Azure Pricing MCP cost estimate for steady-state and Black Friday peak (5x multiplier). Add budget alert thresholds.",
+      "evidence": "Monthly Budget: €15K–€30K with 100K TPM upper bound and no peak modelling"
+    },
+    {
+      "id": "REQ-011",
+      "severity": "should_fix",
+      "title": "Consent management is a functional requirement gap",
+      "description": "LOPDGDD requires explicit consent for AI interactions but no FR describes how consent is obtained, stored, or withdrawn across channels and languages.",
+      "waf_pillar": "security",
+      "recommendation": "Add FR: AI consent capture and management with acceptance criteria for opt-in, persistence, withdrawal, and multilingual implementation.",
+      "evidence": "LOPDGDD Consent management: Yes with no corresponding FR"
+    },
+    {
+      "id": "REQ-012",
+      "severity": "should_fix",
+      "title": "No AI response quality acceptance criteria defined",
+      "description": "No thresholds for hallucination rate, RAG groundedness score, human escalation triggers, or Content Safety severity parameters.",
+      "waf_pillar": "reliability",
+      "recommendation": "Add AI quality thresholds: hallucination ≤2%, groundedness ≥85%, human escalation at confidence <0.6, Content Safety severity thresholds.",
+      "evidence": "Content Safety: Strict content filtering — with no quantified thresholds"
+    },
+    {
+      "id": "REQ-013",
+      "severity": "suggestion",
+      "title": "10K–100K TPM range is too wide for PTU vs PAYG decision",
+      "description": "Order-of-magnitude TPM range prevents informed capacity planning. Suggest back-of-envelope calculation from session volume assumptions.",
+      "waf_pillar": "cost",
+      "recommendation": "Estimate peak TPM: 50K sessions/day × 7,500 tokens/session ÷ (24×60) ≈ 130K TPM peak. Include this calculation in handoff.",
+      "evidence": "Token Throughput: 10K–100K TPM + deferred PTU vs PAYG decision"
+    },
+    {
+      "id": "REQ-014",
+      "severity": "suggestion",
+      "title": "Customer-managed keys (CMK) decision criteria undefined",
+      "description": "CMK is mentioned as conditional but no criteria defined. CMK has Azure AI Search performance implications and must be decided at requirements stage.",
+      "waf_pillar": "security",
+      "recommendation": "Add decision: CMK not required unless DPIA identifies high-risk processing. Document compatibility constraints if CMK is later required.",
+      "evidence": "Encryption at Rest: Platform-managed keys (CMK if required)"
+    },
+    {
+      "id": "REQ-015",
+      "severity": "suggestion",
+      "title": "EU AI Act transparency disclosure not specified per language",
+      "description": "No implementation specification for AI disclosure mechanism in each supported language (ES/CA/PT). Catalan model quality should be evaluated.",
+      "waf_pillar": "operational_excellence",
+      "recommendation": "Add acceptance criterion: AI disclosure in user's active language, verified by QA in all three languages. Include Catalan quality evaluation.",
+      "evidence": "Multilingual support (ES/CA/PT) + EU AI Act transparency obligations"
+    }
+  ]
+}

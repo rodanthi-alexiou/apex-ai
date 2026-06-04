@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
 
 def generate_waf_chart(scores: dict, output_path: str = "02-waf-scores.png") -> None:
@@ -35,7 +34,7 @@ def generate_waf_chart(scores: dict, output_path: str = "02-waf-scores.png") -> 
 
     ax.set_xlim(0, 10)
     ax.set_xlabel("Score (out of 10)", fontsize=10, color="#555")
-    ax.set_title("Azure Well-Architected Framework — Pillar Scores\nCareFlow AI Healthcare Platform",
+    ax.set_title("Azure Well-Architected Framework — Pillar Scores\nModa Ibérica AI Shopping Assistant",
                  fontsize=13, fontweight="bold", color="#1A1A2E", pad=14)
     ax.tick_params(axis="y", labelsize=10, colors="#333")
     ax.tick_params(axis="x", labelsize=9,  colors="#666")
@@ -54,9 +53,9 @@ def generate_waf_chart(scores: dict, output_path: str = "02-waf-scores.png") -> 
 
 scores = {
     "🔒 Security":               8.0,
-    "🔄 Reliability":            7.0,
-    "⚡ Performance Efficiency": 8.0,
-    "💰 Cost Optimization":      7.0,
-    "🔧 Operational Excellence": 7.0,
+    "🔄 Reliability":            7.5,
+    "⚡ Performance Efficiency": 7.5,
+    "💰 Cost Optimization":      7.5,
+    "🔧 Operational Excellence": 8.0,
 }
-generate_waf_chart(scores, "agent-output/careflow-ai/02-waf-scores.png")
+generate_waf_chart(scores, "agent-output/moda-iberica-assistant/02-waf-scores.png")

@@ -148,7 +148,7 @@ per-category and per-artifact-type checklists, plus Azure Infrastructure Skeptic
 
 When `review_focus = "ai-architecture"` (or `comprehensive` on an AI workload):
 
-1. **Read** `.github/skills/azure-defaults/references/adversarial-checklist-ai-architecture.md` — the 24-item AI-specific checklist
+1. **Read** `.github/skills/azure-defaults/references/adversarial-checklist-ai-architecture.md` — the AI-specific checklist
 2. **Read** `.github/skills/azure-ai-architect/SKILL.md` — quick reference table only (do NOT load all sub-references unless a check requires verification)
 3. Apply each checklist item against the artifact, generating findings for failed checks
 

@@ -3,6 +3,32 @@
 WAF-aligned gates and NFR mappings for Azure AI workloads.
 Apply during the Architect step (Step 2) when requirements include AI services.
 
+> **AI Landing Zone note**: Items tagged with an AI LZ code (e.g., C-R1, N-R3) map to the
+> [Azure AI LZ design checklist](https://azure.github.io/AI-Landing-Zones/architecture/design-checklist/).
+> When AI LZ deployment is blocked by customer governance, apply the WAF/CAF fallback
+> guidance in each section and record shared-service dependencies in `04-governance-constraints.md`.
+
+---
+
+## Compute
+
+### PaaS Compute Standardization (C-R1)
+
+Standardize compute options across models, orchestrators, self-hosted agents, and all application
+tiers (frontend, backend, ingestion). Prefer PaaS options to optimize resource utilization
+and simplify management.
+
+| Component              | Recommended PaaS option                    | Notes                                                |
+| ---------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| Orchestrators / agents | Azure Container Apps                       | Consumption or Dedicated plan; KEDA auto-scaling     |
+| Backend API / ingress  | Azure Container Apps or Azure App Service  | ACA for cloud-native; App Service for lift-and-shift |
+| Batch ingestion        | Azure Container Apps Jobs                  | Event-driven; scale to zero between runs             |
+| Model hosting (BYOM)   | Azure Machine Learning Managed Compute     | Only if Foundry-hosted models are insufficient       |
+| Frontend               | Azure Static Web Apps or Azure App Service | Azure Front Door + WAF in front of any public app    |
+
+> Prefer Azure Container Apps for all new agent workloads — supports KEDA, Dapr, and Entra
+> Workload Identity natively. Fall back to AKS only when orchestration complexity demands it.
+
 ---
 
 ## Security
@@ -98,21 +124,37 @@ and token cost projection workflow.
 | Document Intelligence > 500K pages/month | High-volume pricing tier — get page count from requirements |
 | Content safety enabled on all calls      | Add per-call overhead to token cost projection              |
 
+### Auto-Shutdown for Non-Production Resources (CO-R4)
+
+Define and enforce an auto-shutdown policy for all non-production AI compute resources:
+
+- Azure Machine Learning compute instances: enable automatic shutdown after idle period
+- Azure Container Apps dev/staging: set `minReplicas: 0` (scale to zero)
+- Azure AI Foundry compute (if provisioned): schedule shutdown outside business hours
+- Azure VMs (if any): enable auto-shutdown via Azure Policy or portal schedule
+
+> **WAF/CAF fallback (AI LZ blocked)**: Document auto-shutdown as a manual governance
+> control in `04-governance-constraints.md`. Enforce via Azure Policy `Audit` effect
+> targeting `Microsoft.MachineLearningServices/workspaces` compute resources.
+
 ---
 
 ## Operational Excellence
 
 ### Monitoring Requirements
 
-| Signal                           | Tool                                 | Why                                        |
-| -------------------------------- | ------------------------------------ | ------------------------------------------ |
-| Token consumption per deployment | Azure Monitor metrics on AI Services | Throttle prediction and cost tracking      |
-| Search latency (P99)             | AI Search diagnostic logs            | RAG accuracy degradation early warning     |
-| Content safety block rate        | Application Insights                 | Detects adversarial prompt campaigns       |
-| Embedding drift                  | Custom evaluation pipeline (FAOS)    | RAG accuracy over time                     |
-| Model/data drift                 | Foundry evaluations + custom alerts  | Model output quality over time (M-R5)      |
-| Baseline metric alerts           | Azure Monitor Baseline Alerts (AMBA) | Automated alerting for AI resources (M-R2) |
-| Network flow monitoring          | Network Watcher flow logs            | Detect unexpected AI service access (M-R6) |
+| Signal                           | Tool                                 | Why                                              |
+| -------------------------------- | ------------------------------------ | ------------------------------------------------ |
+| Token consumption per deployment | Azure Monitor metrics on AI Services | Throttle prediction and cost tracking            |
+| Search latency (P99)             | AI Search diagnostic logs            | RAG accuracy degradation early warning           |
+| Content safety block rate        | Application Insights                 | Detects adversarial prompt campaigns             |
+| Embedding drift                  | Custom evaluation pipeline (FAOS)    | RAG accuracy over time                           |
+| Model/data drift                 | Foundry evaluations + custom alerts  | Model output quality over time (M-R5)            |
+| Baseline metric alerts           | Azure Monitor Baseline Alerts (AMBA) | Automated alerting for AI resources (M-R2)       |
+| Network flow monitoring          | Network Watcher flow logs            | Detect unexpected AI service access (M-R6)       |
+| Foundry request traces           | AI Foundry built-in tracing          | Per-request trace data for debugging (M-R3)      |
+| Aggregated model metrics         | AI Foundry metrics dashboard         | Latency, throughput, error rate per model (M-R3) |
+| User feedback                    | AI Foundry feedback API              | Correlate user ratings with model outputs (M-R3) |
 
 All AI services must emit diagnostics to the Log Analytics workspace.
 Add `Microsoft.CognitiveServices/accounts` and `Microsoft.Search/searchServices`
@@ -128,6 +170,36 @@ to the diagnostic settings module in the IaC plan.
 
 ---
 
+## Data
+
+### Thread and Run State Storage (D-R1)
+
+Use standard agent setup with customer-managed Azure resources for full data sovereignty.
+See [ai-resource-model.md](ai-resource-model.md) for BYOS IaC patterns.
+
+| Storage component      | Resource                  | Sovereignty note                              |
+| ---------------------- | ------------------------- | --------------------------------------------- |
+| Thread / message state | Azure Cosmos DB (BYOS)    | Required for EU data residency (GDPR Art. 44) |
+| File uploads           | Azure Blob Storage (BYOS) | Per-project isolation; ZRS for durability     |
+| Vector embeddings      | Azure AI Search (BYOS)    | Per-project index isolation                   |
+
+### Storage Isolation per Project (D-R2)
+
+Each distinct application or use case (Foundry Project) must use separate storage
+components. Shared storage across projects breaks data isolation and complicates
+compliance audits. See [ai-resource-model.md](ai-resource-model.md) for IaC patterns.
+
+### Microsoft Fabric Data Integration (D-R3)
+
+If the customer has Microsoft Fabric, surface data into AI Foundry via the
+[Microsoft Fabric data agent](https://learn.microsoft.com/azure/ai-foundry/concepts/fabric-data-agent)
+rather than copying datasets manually.
+
+> **WAF/CAF fallback (no Fabric)**: Stage data into Azure Blob Storage using Azure Data
+> Factory pipelines, then index via Azure AI Search for retrieval in RAG workflows.
+
+---
+
 ## Governance
 
 ### AI Policy Governance
@@ -139,8 +211,21 @@ to the diagnostic settings module in the IaC plan.
 | Require private endpoints on AI Services      | Audit → Deny   | Enforce at subscription scope for production |
 | Require content safety filter ≥ Standard tier | Audit          | Escalate to Deny for regulated scopes        |
 
-Apply the built-in Azure Policy initiative:
-`[Preview]: Azure AI Services resources should use private links` (G-R1).
+Apply these built-in Azure Policy initiatives at management group / subscription scope (G-R1).
+Start with `Audit` effect on all; only switch to `Deny` after baseline is established:
+
+| Initiative / Policy                                               | Category           |
+| ----------------------------------------------------------------- | ------------------ |
+| `[Preview]: Azure AI Services resources should use private links` | Network isolation  |
+| Azure AI Foundry — built-in policy set                            | Foundry governance |
+| Azure Machine Learning — built-in policy set (if applicable)      | ML governance      |
+| Azure AI Search — require private endpoint                        | Network isolation  |
+| Restrict allowed Azure OpenAI model catalog versions              | Model governance   |
+
+> **Model governance (G-R5)**: Switching to `Deny` effect does **not** automatically remove
+> already-deployed noncompliant models. Remediate existing deployments manually before
+> switching. Use `Audit` first to understand usage and avoid blocking active workloads.
+
 Map to NIST AI RMF and record compliance posture in `04-governance-constraints.md` (G-R2).
 
 ### Responsible AI Dashboard

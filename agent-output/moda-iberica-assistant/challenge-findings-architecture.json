@@ -1,0 +1,217 @@
+{
+  "challenged_artifact": "agent-output/moda-iberica-assistant/02-architecture-assessment.md",
+  "artifact_type": "architecture",
+  "project": "moda-iberica-assistant",
+  "review_focus": "comprehensive",
+  "pass_number": 1,
+  "reviewed_at": "2026-06-01",
+  "reviewer": "challenger-review-subagent",
+  "risk_level": "high",
+  "must_fix_count": 5,
+  "should_fix_count": 10,
+  "suggestion_count": 5,
+  "executive_summary": "The architecture assessment contains five must-fix issues that could cause production failure, compliance violations, or silent budget overrun: Foundry Agent Service is architecturally central but absent from the provisioning list (IaC will deploy an incomplete system); Cosmos DB is configured as 'multi-region write' in the SKU table but described as 'active-passive DR' in the decision summary — these are mutually exclusive models, and multi-region write doubles the data-tier cost vs. the estimate; the OpenAI cost estimate uses ~67K TPM implied by session math while the architecture simultaneously states 80K TPM average — if the 80K figure is correct the steady-state cost approaches the €15K/month budget floor; AI Search daily cold-standby achieves at most 24h RPO, directly contradicting the stated 1h RPO; and GDPR-required PII redaction for Cosmos DB conversation logs is positioned as a recommendation rather than a design control. Ten additional should-fix findings cover DDoS/WAF gap, zone-redundancy misclaim, DORA applicability, SLA ambiguity, Black Friday cost underestimate, external integration resilience, and Log Analytics retention.",
+  "issues": [
+    {
+      "id": "ARCH-001",
+      "severity": "must_fix",
+      "title": "Foundry Agent Service absent from provisioning list — IaC deployment will be incomplete",
+      "waf_pillar": "Operational Excellence",
+      "lens": "operational-excellence",
+      "description": "The Mermaid architecture diagram shows 'Foundry Agent Service' as a first-class component in the critical call path (Container Apps → Foundry → OpenAI/AISearch/ContentSafety), yet the Implementation Handoff table lists only 16 resources with no entry for Foundry Agent Service. Foundry Agent Service requires provisioning an AI Services account (`kind: AIServices`), a Foundry Project workspace, a capability host, and agent deployment — these are distinct Azure resources with their own ARM/Bicep representation. The IaC planner will generate code for the 16 listed resources and skip Foundry entirely, producing an architecture that cannot function as designed.",
+      "recommendation": "Add Foundry Agent Service (AI Services account with `kind: AIServices` + Foundry Project workspace + capability host) as explicit line items in the provisioning table with SKU (Standard, S0), configuration details (standard agent setup, VNet integration, capability host FQDN), and monthly cost estimate. Alternatively, if Container Apps alone handles orchestration and Foundry is used only for model management, the diagram must be corrected to remove Foundry from the runtime call path.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-002",
+      "severity": "must_fix",
+      "title": "Cosmos DB 'multi-region write' in SKU table contradicts 'active-passive DR' strategy — doubles data-tier cost",
+      "waf_pillar": "Cost Optimization",
+      "lens": "cost-feasibility",
+      "description": "The Resource SKU Recommendations table specifies 'multi-region write' for Cosmos DB (NoSQL, Autoscale, Zone-redundant, 4000 RU/s max, multi-region write). Multi-region write is an active-active configuration priced at ~2× the single-write-region cost (~$460/month vs. the estimated $234/month). This directly contradicts the Architecture Decision Summary which states 'Active-Passive' DR strategy. If the IaC planner uses the SKU table to generate Bicep, it will provision multi-region write, adding ~$226/month ($2,712/year) not in the budget.",
+      "recommendation": "Reconcile the configuration: if active-passive DR is the intent (as stated in the Architecture Decision Summary), change the SKU table to 'single-write-region, geo-redundant backup' and confirm $234/month estimate is correct. If multi-region write is genuinely required, update the cost estimate to ~$460/month and re-validate budget alignment. Add a Cosmos DB failover priority configuration note (primary=swedencentral, secondary=germanywestcentral, manual failover).",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-003",
+      "severity": "must_fix",
+      "title": "OpenAI TPM figures are internally inconsistent — 80K TPM stated vs. ~67K TPM implied by cost math, potentially breaching €15K budget floor",
+      "waf_pillar": "Cost Optimization",
+      "lens": "cost-feasibility",
+      "description": "The architecture SKU table states '80K TPM avg' for Azure OpenAI, but the cost estimate's session-based math implies ~66,667 TPM average. If the 80K TPM figure is correct, the pre-cache OpenAI cost is $16,632/month and after 25% cache savings: ~$12,474/month for OpenAI alone, yielding a total of ~$16,400/month (~€15,046) — which exceeds the steady-state lower budget bound of €15,000. The 17% discrepancy materially affects quota requests, PTU sizing at the 6-month review, and budget approval.",
+      "recommendation": "Reconcile TPM figures with a single authoritative source. Recalculate: sessions/day × avg turns × avg tokens/turn → divide by minutes/day to derive TPM. Update both the architecture SKU table and cost estimate to use the same input number. If 80K TPM is correct, flag that the total approaches the €15K/month budget ceiling and triggers immediate PTU re-evaluation.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-004",
+      "severity": "must_fix",
+      "title": "AI Search 'daily cold-standby refresh' achieves 24h RPO at best — contradicts 1h RPO SLA claim",
+      "waf_pillar": "Reliability",
+      "lens": "architecture-reliability",
+      "description": "The Reliability Assessment recommends 'Pre-provision AI Search index in germanywestcentral (cold standby, refreshed daily)' as the DR mitigation. A daily refresh means the DR index is up to 24 hours stale at failover. The Requirements Validation table states 1h RPO is 'achievable' — but AI Search has no native geo-replication and cannot be continuously synchronized without custom pipelines. During a regional failure, inventory updates and price changes from the past 24 hours would be missing, delivering stale recommendations.",
+      "recommendation": "Either (a) lower the AI Search RPO SLA claim to 24h and document this as an accepted trade-off; or (b) design a near-real-time index synchronization pipeline (Event Grid notifications triggering re-indexing in the DR region within 1 hour of each document change). Option (a) is simpler and sufficient for a fashion catalog where product data changes infrequently.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-005",
+      "severity": "must_fix",
+      "title": "GDPR PII redaction for Cosmos DB conversation logs is a recommendation, not a design control",
+      "waf_pillar": "Security",
+      "lens": "security-governance",
+      "description": "The Security Assessment lists 'Implement conversation PII redaction before Cosmos DB storage (GDPR minimisation principle)' as a recommendation under Security Gaps, not as a mandatory implementation requirement. Conversation logs will inevitably contain PII: user names, SAP-sourced account details, order history, and free-text user input. GDPR Article 5(1)(c) data minimisation and Article 25 data protection by design require PII controls to be architectural decisions, not post-launch optimisations.",
+      "recommendation": "Promote PII redaction from recommendation to mandatory implementation requirement. Specify: pre-storage PII scrubbing pipeline using Azure AI Language PII detection applied before every Cosmos DB write. Add to the provisioning list as a Container App component or sidecar. Additionally, note that Cosmos DB continuous backup retains records for 30 days even after TTL deletion — disclose the 30-day backup retention window in the privacy notice.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-006",
+      "severity": "should_fix",
+      "title": "No WAF/DDoS protection at public ingress — Security score 8.5/10 is inflated given acknowledged gap",
+      "waf_pillar": "Security",
+      "lens": "security-governance",
+      "description": "The Security Assessment correctly flags 'No WAF/DDoS protection layer beyond APIM built-in rate limiting (Front Door recommended for production)' as a gap — yet the pillar is still rated 8.5/10. APIM Standard v2 does NOT provide L3/L4 DDoS protection, geo-filtering, OWASP Top 10 WAF rules, or bot detection. For a public-facing AI application processing financial-adjacent data (order history, loyalty data), the public APIM endpoint is exposed to volumetric DDoS, credential stuffing, and AI-specific abuse.",
+      "recommendation": "Add Azure Front Door Premium with WAF policy (OWASP 3.2 ruleset, bot manager) as a mandatory pre-production requirement (~$330/month + data transfer) and revise the security score to reflect its absence as a pre-production blocker. Flag this as a gate condition before production traffic is enabled.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-007",
+      "severity": "should_fix",
+      "title": "Container Apps 2-node minimum does not achieve true availability zone redundancy",
+      "waf_pillar": "Reliability",
+      "lens": "architecture-reliability",
+      "description": "Container Apps zone redundancy requires a minimum of 3 replicas spread across 3 availability zones. With minimum 2 replicas, if one AZ fails, during the scale-out window (60–120 seconds) the system runs on 1 replica. Under 2K concurrent users, this creates a brownout condition that violates the 99.9% SLA. The Reliability Assessment's zone-redundancy claim is therefore inaccurate for Container Apps.",
+      "recommendation": "Set the minimum replica count to 3 to span all 3 AZs. Update the cost estimate: 3 replicas × 2 vCPU = 6 vCPU × $0.057/hr ≈ +$79/month. Update the Reliability Assessment zone-redundancy claim to be conditional on minimum 3 replicas.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-008",
+      "severity": "should_fix",
+      "title": "p95 < 3s SLA target ambiguous between time-to-first-byte and full response — streaming recommendation masks a likely SLA breach",
+      "waf_pillar": "Performance Efficiency",
+      "lens": "performance-scalability",
+      "description": "The Performance Assessment recommends 'response streaming for first-token-time < 500ms' as a mitigation for the 3s SLA. However, streaming changes the measurement point: TTFT can be < 500ms, but full response for a 300-word RAG answer still takes 3–8s. For the full RAG pipeline (AI Search ~400ms + SAP API ~300ms + GPT-4o ~2500ms), the non-cached p95 will consistently exceed 3s. The architecture conflates TTFT with full response time.",
+      "recommendation": "Clarify the p95 SLA: distinguish TTFT (achievable < 500ms with streaming) from full response time (likely 4–5s for complex queries). If TTFT is the target, document this explicitly and ensure the client SDK uses streaming. If full response is the target, revise the NFR to p95 < 5s full response with p50 < 3s.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-009",
+      "severity": "should_fix",
+      "title": "DORA compliance likely inapplicable to a fashion retailer — unvalidated inclusion creates unnecessary complexity",
+      "waf_pillar": "Operational Excellence",
+      "lens": "security-governance",
+      "description": "DORA (EU 2022/2554) applies to financial entities (credit institutions, insurance undertakings, investment firms, etc.) and their critical ICT third-party providers. Moda Ibérica is a fashion retailer with no apparent financial services operations. Including DORA adds significant overhead (5-year ICT risk record retention, 4-hour incident reporting to financial regulators, third-party ICT risk assessments) that is neither required nor calibrated for a retail AI assistant.",
+      "recommendation": "Validate with Moda Ibérica's legal/compliance team whether DORA applies. If not (most likely for a fashion retailer), remove DORA from the compliance framework list. This will simplify Log Analytics retention requirements, incident reporting SLAs, and monitoring architecture.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-010",
+      "severity": "should_fix",
+      "title": "Black Friday month cost likely $33K–$37K — may exceed €30K ceiling, not just 'approach' it",
+      "waf_pillar": "Cost Optimization",
+      "lens": "cost-feasibility",
+      "description": "At 90K sessions/day for the full Black Friday month: 2.7M sessions × 3,200 tokens = 8.64B tokens/month. Input 6.48B × $0.00275/1K = $17,820; Output 2.16B × $0.011/1K = $23,760; gross $41,580. After 25% cache savings: $31,185 for OpenAI alone + $4,000 non-AI = ~$35,185 total. The stated $28,500 estimate is ~19% understated. At a realistic 15% cache hit rate during peak (higher query diversity during sales): ~$39,343 — exceeding the €30K ceiling ($32,700).",
+      "recommendation": "Re-derive the Black Friday cost estimate using the full token model. Model a 15% cache hit rate scenario (reduced for sales-period query diversity). If the revised estimate approaches or exceeds €30K, implement a session-level token cap enforced at the APIM layer to bound maximum monthly spend, or pre-approve an emergency budget buffer.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-011",
+      "severity": "should_fix",
+      "title": "GDPR right to erasure gap: Cosmos DB 30-day continuous backup retains PII after TTL deletion",
+      "waf_pillar": "Security",
+      "lens": "security-governance",
+      "description": "The implementation notes 'GDPR Right to Erasure: Cosmos DB TTL + application-layer cascade delete.' However, Cosmos DB continuous backup retains all data including deleted records for 30 days. TTL deletion removes live data but leaves records recoverable via point-in-time restore. Under GDPR Article 17, erasure must be 'without undue delay.' A 30-day window during which deleted records remain in backup is non-compliant — particularly for a conversational AI where users may share sensitive information.",
+      "recommendation": "Implement logical deletion with encryption key rotation per user (CMK scoped per user ID — rotate key on erasure request to render backup data inaccessible). Alternatively, reduce backup window to 7 days (Cosmos DB minimum) and disclose the 7-day SLA for full backup erasure in the privacy notice.",
+      "effort": "high"
+    },
+    {
+      "id": "ARCH-012",
+      "severity": "should_fix",
+      "title": "No external integration resilience patterns specified — 5 external dependencies threaten 99.9% SLA",
+      "waf_pillar": "Reliability",
+      "lens": "architecture-reliability",
+      "description": "Container Apps makes synchronous calls to 5 external systems (SAP, OMS, Salesforce, SharePoint, Style Guide). Missing: per-integration timeout values, retry policies with exponential backoff, circuit breaker state definitions, fallback content when services are unavailable, and bulkhead isolation. A 5-minute SAP outage would exhaust Container App threads and cause cascading failures affecting all 2K concurrent users.",
+      "recommendation": "Add a dedicated 'External Integration Resilience' section. For each integration specify: max timeout (SAP 2000ms, OMS 1500ms, Salesforce 3000ms), retry count (2 retries with 200ms backoff), circuit breaker thresholds (open after 5 failures in 30s), and graceful degradation response. Implement via resilience library (Polly/.NET, tenacity/Python). This is a precondition for the 99.9% SLA claim to be credible.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-013",
+      "severity": "should_fix",
+      "title": "Log Analytics 90-day retention insufficient for GDPR accountability and LOPDGDD audit requirements",
+      "waf_pillar": "Security",
+      "lens": "security-governance",
+      "description": "EDPB guidelines recommend security event logs be retained for minimum 12 months with 6 months immediately accessible. LOPDGDD enforcement practice (AEPD) expects 12-month audit trail availability. A 90-day window means any breach discovered after 3 months cannot be fully reconstructed from logs. EU AI Act also requires audit trail documentation that may extend beyond 90 days for high-risk system incidents.",
+      "recommendation": "Extend Log Analytics workspace retention to 12 months (hot tier) for security/admin/access audit tables, with 24 months in archived tier (~$0.03/GB/month). Apply selective retention: conversation logs (privacy-sensitive) at 90 days; security/audit logs at 12 months minimum. Cost impact: ~+$36/month, negligible.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-014",
+      "severity": "should_fix",
+      "title": "Azure Budget resource absent from provisioning list — must be IaC-provisioned with 3 alert thresholds",
+      "waf_pillar": "Cost Optimization",
+      "lens": "operational-excellence",
+      "description": "The architecture mentions 'Cost Alerts at 80% and 100%' and lists '$0' cost for budget alerts, but Azure Budget is a provisioned resource (Microsoft.Consumption/budgets) that must be in IaC to be reliably deployed. It is absent from the 16-resource provisioning table. Only 2 alert thresholds are specified — missing the 120% over-budget alert essential for detecting runaway token consumption during Black Friday.",
+      "recommendation": "Add Azure Budget as resource #17 with: amount = €14,000 monthly, reset period = Monthly, alert thresholds = 80% (€11,200), 100% (€14,000), 120% (€16,800), notification recipients = parameterized (not hardcoded email). Add a separate peak-month budget: €27,000 with 80% alert.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-015",
+      "severity": "should_fix",
+      "title": "Semantic caching creates correctness risk for real-time inventory queries — cache invalidation strategy absent",
+      "waf_pillar": "Reliability",
+      "lens": "performance-scalability",
+      "description": "APIM semantic caching caches responses based on semantic similarity. A semantically similar cached response from 20 minutes ago for 'Is the blue linen blazer in size L available at Madrid Gran Vía?' may return 'Yes, in stock' when the item has since sold out. No cache invalidation strategy or query classification (real-time vs. static) is defined. This correctness failure violates EU consumer law (Directive 2019/770 on digital content) for real-time availability queries.",
+      "recommendation": "Classify queries: (1) static/slow-changing (product descriptions, FAQ, brand info) — cache with TTL 1–4 hours; (2) dynamic/real-time (inventory, pricing, order status, personalised data) — bypass cache using APIM policy header `cache-control: no-store`. Implement at the APIM policy level with intent classification. Document cache bypass categories explicitly in the Implementation Handoff.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-016",
+      "severity": "suggestion",
+      "title": "Microsoft Defender for Cloud estimated cost absent from budget — likely $400–$500/month for this workload",
+      "waf_pillar": "Security",
+      "lens": "cost-feasibility",
+      "description": "The Security Assessment recommends Defender for Cloud but no cost line item exists in the estimate. For this architecture: Defender for Containers (~$380/month), Defender for Key Vault (~$100/month), Defender for Cosmos DB ($5/month), Defender for Storage (~$10/month) ≈ $495/month. This could add ~$480/month to the steady-state total, raising it to ~$14,716/month (~€13,500).",
+      "recommendation": "Add a Defender for Cloud line item using selective enhanced protection for the highest-risk services: Defender for Containers + Defender for Key Vault as minimum. Update the steady-state total accordingly.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-017",
+      "severity": "suggestion",
+      "title": "AI Search semantic ranker cost understated by 45–80% — $590/month vs. $1,080–$1,800/month actual",
+      "waf_pillar": "Cost Optimization",
+      "lens": "cost-feasibility",
+      "description": "The cost estimate calculates semantic ranker at $590/month using ~590K queries/month. However, using the same 4 API calls/session assumption from the RPS calculation: 4 queries/session × 30% ranker usage × 30K sessions/day × 30 days = 1.08M ranker queries/month × $1/1K = $1,080/month. At Phase 2 load (50K sessions/day): $1,800/month. The $590 figure appears to undercount by 45–80%.",
+      "recommendation": "Re-derive semantic ranker query volume consistently from the same session/query-per-session assumptions used in the RPS section. Update the cost estimate for both steady-state (30K sessions/day) and Phase 2 (50K sessions/day) scenarios.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-018",
+      "severity": "suggestion",
+      "title": "EU AI Act risk classification not documented — transparency-only may be insufficient if reclassified",
+      "waf_pillar": "Security",
+      "lens": "security-governance",
+      "description": "The architecture states 'EU AI Act transparency: users informed they interact with AI' as the sole control, without documenting the formal risk classification. A system that uses personalisation to influence purchasing decisions and processes personal data may require reclassification review. If later reclassified to high-risk, architectural controls would be materially insufficient.",
+      "recommendation": "Commission an EU AI Act risk classification as a formal project deliverable before production. Document the classification outcome (most likely 'limited risk'), evidence, and applicable Articles. Include as a prerequisite for the October Phase 2 launch.",
+      "effort": "medium"
+    },
+    {
+      "id": "ARCH-019",
+      "severity": "suggestion",
+      "title": "August MVP timeline is 8 weeks with 4 blocking prerequisites — delivery risk not flagged in risks table",
+      "waf_pillar": "Operational Excellence",
+      "lens": "operational-excellence",
+      "description": "MVP targets August 2026 (~8 weeks from start). Four prerequisites are on the critical path: (1) production Azure subscription; (2) CAF landing zone (June–July, 4–6 weeks); (3) Azure OpenAI quota approval (2–4 weeks after submission); (4) Entra ID B2C with custom policies for 3 locales (July, 4–6 weeks). Prerequisites (2) and (4) have July completion estimates — both on the critical path for August MVP — yet this is not flagged in the Top Architecture Risks table.",
+      "recommendation": "Add 'MVP timeline feasibility — prerequisites on critical path' as High Likelihood / High Impact in the risks table. Parallelize prerequisites: begin B2C provisioning Week 1 alongside landing zone. Add a dependency timeline to the implementation handoff so the IaC planner can sequence correctly.",
+      "effort": "low"
+    },
+    {
+      "id": "ARCH-020",
+      "severity": "suggestion",
+      "title": "AI Search DR re-index time not estimated — 85K docs + embeddings may consume 2h+ threatening 4h RTO margin",
+      "waf_pillar": "Reliability",
+      "lens": "architecture-reliability",
+      "description": "If the DR index needs a full rebuild, vectorising 85K documents via Azure OpenAI embedding API at typical PAYG batch rates (1,000–2,000 embeddings/minute) takes 43–85 minutes for embedding generation alone, plus indexing time. This could approach or exceed 2 hours. Combined with DNS/APIM failover time (~30 min), the total DR recovery could approach or exceed the 4h RTO target — especially if quota rate-limiting occurs during a regional incident.",
+      "recommendation": "Estimate full DR recovery time by measuring embedding throughput on a 1,000-doc batch. If re-index + failover > 4h, either provision a fully warm DR index (refreshed hourly) or increase the RTO target to 6h and update the SLA table. Document the re-index procedure as an operational runbook requirement before go-live.",
+      "effort": "medium"
+    }
+  ],
+  "compact_for_parent": "Pass 1 (comprehensive) | HIGH risk | 5 must_fix, 10 should_fix, 5 suggestions | Key must-fix: [ARCH-001] Foundry Agent Service absent from provisioning list — IaC deployment incomplete; [ARCH-002] Cosmos DB multi-region write contradicts active-passive DR — doubles data-tier cost; [ARCH-003] OpenAI TPM inconsistency (80K stated vs 67K implied) — steady-state may breach €15K budget floor; [ARCH-004] AI Search daily DR refresh achieves 24h RPO at best, not 1h; [ARCH-005] GDPR PII redaction positioned as recommendation not design control. Top should-fix: DORA applicability unvalidated, Black Friday cost understated by 19%+, semantic caching has correctness risk for real-time inventory, external integration resilience patterns absent."
+}

@@ -1,54 +1,39 @@
 {
   "schema_version": "3.0",
-  "project": "careflow-ai",
+  "project": "moda-iberica-assistant",
   "iac_tool": "",
   "region": "swedencentral",
   "branch": "main",
-  "updated": "2026-05-20T08:47:01Z",
+  "updated": "2026-05-28T16:57:50Z",
   "current_step": 0,
   "decisions": {
     "region": "swedencentral",
-    "compliance": "GDPR, NEN 7510, ISO 27001",
-    "budget": "2000-5000 EUR/month",
+    "compliance": "GDPR,LOPDGDD,DORA,EU-AI-Act",
+    "budget": "15000-30000-eur-monthly",
     "architecture_pattern": "",
-    "deployment_strategy": "phased-standard",
+    "deployment_strategy": "",
     "complexity": "",
     "iac_tool": "Bicep"
   },
-  "open_findings": [
-    "CRITICAL: Block Azure OpenAI Provisioned Capacity — OpenAI deployments must use Standard (PAYG) SKU, not PTU/ProvisionedManaged",
-    "RISK: Block Azure Sentinel Commitment over 100 — Log Analytics capacityReservationLevel must not exceed 100; recommend PerGB2018 SKU"
-  ],
+  "open_findings": [],
   "decision_log": [
     {
-      "decision": "4 shared agent types instead of 200 instances",
-      "timestamp": "2026-05-19T14:13:44Z",
-      "rationale": "Efficient multi-tenancy via hospital_id context; 50-75 concurrent executions sufficient",
+      "decision": "Complexity classified as complex",
+      "timestamp": "2026-05-28T16:29:25Z",
+      "rationale": "11+ resource types, 4 compliance frameworks, AI workload with 5 external integrations, multi-env",
+      "step": "1"
+    },
+    {
+      "decision": "AI deployment: PAYG Year 1",
+      "timestamp": "2026-05-28T16:56:49Z",
+      "rationale": "Usage patterns unstable, 10K-100K TPM range too wide for PTU commitment. Re-evaluate at 3-6 months.",
       "step": "2"
     },
     {
-      "decision": "Cosmos DB Autoscale with Continuous Backup",
-      "timestamp": "2026-05-19T14:13:44Z",
-      "rationale": "RPO=1h requires PITR; Serverless only offers 4h periodic backup",
+      "decision": "AI gateway: APIM Standard v2",
+      "timestamp": "2026-05-28T16:56:50Z",
+      "rationale": "Token governance, semantic caching (15-30% cost reduction), model failover, observability",
       "step": "2"
-    },
-    {
-      "decision": "Ingestion Proxy for PHI validation",
-      "timestamp": "2026-05-19T14:13:45Z",
-      "rationale": "GDPR Art.5(1)(f) - raw PHI must never enter Event Hubs immutable streams",
-      "step": "2"
-    },
-    {
-      "decision": "Architecture diagram generated in Draw.io format with 19 Azure icons and 11 flow edges",
-      "timestamp": "2026-05-19T18:30:36Z",
-      "rationale": "Transactional MCP workflow: 4 zone groups, Hospital external vertex, 8 cross-cutting services",
-      "step": "3"
-    },
-    {
-      "decision": "Deployment strategy: phased",
-      "timestamp": "2026-05-19T20:29:24Z",
-      "rationale": "20 resources with production security/compliance needs (NEN 7510, GDPR, 6 private endpoints)",
-      "step": "4"
     }
   ],
   "review_audit": {
@@ -71,7 +56,7 @@
     "step_3_5": {
       "complexity": "",
       "passes_planned": 0,
-      "passes_executed": 1,
+      "passes_executed": 0,
       "skipped": [],
       "skip_reasons": [],
       "models_used": []
@@ -79,7 +64,7 @@
     "step_4": {
       "complexity": "",
       "passes_planned": 0,
-      "passes_executed": 2,
+      "passes_executed": 0,
       "skipped": [],
       "skip_reasons": [],
       "models_used": []
@@ -108,47 +93,47 @@
       "status": "complete",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-20T08:46:45Z",
+      "completed": "2026-05-28T16:49:51Z",
       "artifacts": [],
       "context_files_used": []
     },
     "2": {
       "name": "Architecture",
       "agent": "03-Architect",
-      "status": "complete",
-      "sub_step": null,
+      "status": "pending",
+      "sub_step": "phase_2_waf",
       "started": null,
-      "completed": "2026-05-19T14:16:24Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },
     "3": {
       "name": "Design",
       "agent": "04-Design",
-      "status": "complete",
+      "status": "pending",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-19T18:30:37Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },
     "3_5": {
       "name": "Governance",
       "agent": "04g-Governance",
-      "status": "complete",
+      "status": "pending",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-19T19:34:02Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },
     "4": {
       "name": "IaC Plan",
       "agent": "",
-      "status": "complete",
+      "status": "pending",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-20T08:47:01Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },

@@ -1,54 +1,63 @@
 {
   "schema_version": "3.0",
-  "project": "careflow-ai",
-  "iac_tool": "",
+  "project": "moda-iberica-assistant",
+  "iac_tool": "Bicep",
   "region": "swedencentral",
   "branch": "main",
-  "updated": "2026-05-20T08:46:45Z",
-  "current_step": 0,
+  "updated": "2026-06-01T12:00:00Z",
+  "current_step": 2,
   "decisions": {
     "region": "swedencentral",
-    "compliance": "GDPR, NEN 7510, ISO 27001",
-    "budget": "2000-5000 EUR/month",
-    "architecture_pattern": "",
-    "deployment_strategy": "phased-standard",
-    "complexity": "",
+    "compliance": "GDPR,LOPDGDD,DORA,EU-AI-Act",
+    "budget": "15000-30000-eur-monthly",
+    "architecture_pattern": "RAG-Conversational-AI",
+    "deployment_strategy": "zone-redundant-active-passive-DR",
+    "complexity": "complex",
     "iac_tool": "Bicep"
   },
-  "open_findings": [
-    "CRITICAL: Block Azure OpenAI Provisioned Capacity — OpenAI deployments must use Standard (PAYG) SKU, not PTU/ProvisionedManaged",
-    "RISK: Block Azure Sentinel Commitment over 100 — Log Analytics capacityReservationLevel must not exceed 100; recommend PerGB2018 SKU"
-  ],
+  "open_findings": [],
   "decision_log": [
     {
-      "decision": "4 shared agent types instead of 200 instances",
-      "timestamp": "2026-05-19T14:13:44Z",
-      "rationale": "Efficient multi-tenancy via hospital_id context; 50-75 concurrent executions sufficient",
+      "decision": "Complexity classified as complex",
+      "timestamp": "2026-05-28T16:29:25Z",
+      "rationale": "11+ resource types, 4 compliance frameworks, AI workload with 5 external integrations, multi-env",
+      "step": "1"
+    },
+    {
+      "decision": "AI deployment: PAYG Year 1",
+      "timestamp": "2026-05-28T16:56:49Z",
+      "rationale": "Usage patterns unstable, 10K-100K TPM range too wide for PTU commitment. Re-evaluate at 3-6 months.",
       "step": "2"
     },
     {
-      "decision": "Cosmos DB Autoscale with Continuous Backup",
-      "timestamp": "2026-05-19T14:13:44Z",
-      "rationale": "RPO=1h requires PITR; Serverless only offers 4h periodic backup",
+      "decision": "AI gateway: APIM Standard v2",
+      "timestamp": "2026-05-28T16:56:50Z",
+      "rationale": "Token governance, semantic caching (15-30% cost reduction), model failover, observability",
       "step": "2"
     },
     {
-      "decision": "Ingestion Proxy for PHI validation",
-      "timestamp": "2026-05-19T14:13:45Z",
-      "rationale": "GDPR Art.5(1)(f) - raw PHI must never enter Event Hubs immutable streams",
+      "decision": "Compute platform: Container Apps Dedicated",
+      "timestamp": "2026-06-01T12:00:00Z",
+      "rationale": "Right-sized for workload, no K8s overhead, predictable performance for peak traffic",
       "step": "2"
     },
     {
-      "decision": "Architecture diagram generated in Draw.io format with 19 Azure icons and 11 flow edges",
-      "timestamp": "2026-05-19T18:30:36Z",
-      "rationale": "Transactional MCP workflow: 4 zone groups, Hospital external vertex, 8 cross-cutting services",
-      "step": "3"
+      "decision": "Network: Hub-spoke with private endpoints for all data services",
+      "timestamp": "2026-06-01T12:00:00Z",
+      "rationale": "Zero Trust model, GDPR data residency, all data services isolated within VNet",
+      "step": "2"
     },
     {
-      "decision": "Deployment strategy: phased",
-      "timestamp": "2026-05-19T20:29:24Z",
-      "rationale": "20 resources with production security/compliance needs (NEN 7510, GDPR, 6 private endpoints)",
-      "step": "4"
+      "decision": "DR strategy: Active-passive to germanywestcentral",
+      "timestamp": "2026-06-01T12:00:00Z",
+      "rationale": "4h RTO / 1h RPO achievable with pre-provisioned DR resources, EU data residency maintained",
+      "step": "2"
+    },
+    {
+      "decision": "WAF scores: Security 8.5, Reliability 7.5, Performance 7.0, Cost 7.0, Operations 7.5",
+      "timestamp": "2026-06-01T12:00:00Z",
+      "rationale": "Primary optimization on Security due to 4 compliance frameworks; Cost at 7.0 due to PAYG uncertainty",
+      "step": "2"
     }
   ],
   "review_audit": {
@@ -71,7 +80,7 @@
     "step_3_5": {
       "complexity": "",
       "passes_planned": 0,
-      "passes_executed": 1,
+      "passes_executed": 0,
       "skipped": [],
       "skip_reasons": [],
       "models_used": []
@@ -79,7 +88,7 @@
     "step_4": {
       "complexity": "",
       "passes_planned": 0,
-      "passes_executed": 2,
+      "passes_executed": 0,
       "skipped": [],
       "skip_reasons": [],
       "models_used": []
@@ -108,7 +117,7 @@
       "status": "complete",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-20T08:46:45Z",
+      "completed": "2026-05-28T16:49:51Z",
       "artifacts": [],
       "context_files_used": []
     },
@@ -116,29 +125,40 @@
       "name": "Architecture",
       "agent": "03-Architect",
       "status": "complete",
-      "sub_step": null,
-      "started": null,
-      "completed": "2026-05-19T14:16:24Z",
-      "artifacts": [],
-      "context_files_used": []
+      "sub_step": "phase_5_artifact",
+      "started": "2026-05-28T16:50:00Z",
+      "completed": "2026-06-01T12:00:00Z",
+      "artifacts": [
+        "02-architecture-assessment.md",
+        "03-des-cost-estimate.md",
+        "02-waf-scores.py",
+        "02-waf-scores.png",
+        "03-des-cost-distribution.py",
+        "03-des-cost-distribution.png",
+        "03-des-cost-projection.py",
+        "03-des-cost-projection.png"
+      ],
+      "context_files_used": [
+        "01-requirements.md"
+      ]
     },
     "3": {
       "name": "Design",
       "agent": "04-Design",
-      "status": "complete",
+      "status": "pending",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-19T18:30:37Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },
     "3_5": {
       "name": "Governance",
       "agent": "04g-Governance",
-      "status": "complete",
+      "status": "pending",
       "sub_step": null,
       "started": null,
-      "completed": "2026-05-19T19:34:02Z",
+      "completed": null,
       "artifacts": [],
       "context_files_used": []
     },
@@ -146,7 +166,7 @@
       "name": "IaC Plan",
       "agent": "",
       "status": "pending",
-      "sub_step": "phase_3.5_strategy",
+      "sub_step": null,
       "started": null,
       "completed": null,
       "artifacts": [],

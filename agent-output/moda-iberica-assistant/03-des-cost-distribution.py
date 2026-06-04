@@ -9,12 +9,13 @@ def generate_cost_distribution_chart(
 ) -> None:
     """Render a donut chart of cost breakdown by category."""
     PALETTE = [
-        "#0078D4",   # Azure blue    - Compute
+        "#0078D4",   # Azure blue    - AI/Compute
         "#50E6FF",   # Azure cyan    - Data
         "#1490DF",   # Medium blue   - Networking
         "#773ADC",   # Purple        - Security / Mgmt
         "#FFB900",   # Gold          - Monitoring
         "#107C10",   # Green         - Storage
+        "#E3008C",   # Magenta       - Cache & Automation
         "#D13438",   # Red           - Other
     ]
 
@@ -39,20 +40,20 @@ def generate_cost_distribution_chart(
     hole = plt.Circle((0, 0), 0.60, fc="#F8F9FA")
     ax.add_patch(hole)
 
-    ax.text(0, 0.07, f"€{total_monthly:,.0f}", ha="center", va="center",
+    ax.text(0, 0.07, f"${total_monthly:,.0f}", ha="center", va="center",
             fontsize=17, fontweight="bold", color="#1A1A2E")
     ax.text(0, -0.17, "/ month", ha="center", va="center",
             fontsize=10, color="#666")
 
     legend_labels = [
-        f"{lbl}  €{val:,.0f}  ({pct:.0f}%)"
+        f"{lbl}  ${val:,.0f}  ({pct:.0f}%)"
         for lbl, val, pct in zip(labels, values, pcts)
     ]
     patches = [mpatches.Patch(color=c, label=l) for c, l in zip(colors, legend_labels)]
     ax.legend(handles=patches, loc="lower center", bbox_to_anchor=(0.5, -0.15),
               ncol=2, fontsize=9, framealpha=0.0, columnspacing=1.2)
 
-    ax.set_title("Monthly Cost Distribution — CareFlow AI\n(Production Environment)",
+    ax.set_title("Monthly Cost Distribution - Moda Iberica Assistant",
                  fontsize=13, fontweight="bold", color="#1A1A2E", pad=10)
 
     plt.tight_layout(pad=1.4)
@@ -61,19 +62,18 @@ def generate_cost_distribution_chart(
     print(f"Generated: {output_path}")
 
 
-# Cost categories based on MCP-verified + estimated pricing
 categories = {
-    "💻 Compute (Container Apps)": 216,
-    "🤖 AI Services (OpenAI)": 90,
-    "🌐 Networking (APIM + FD)": 430,
-    "💾 Data (Cosmos DB + EH + SB)": 80,
-    "🗄️ Storage (ZRS)": 110,
-    "📊 Monitoring": 300,
-    "🔒 Security (KV + PE + VNet)": 22,
+    "AI Services (OpenAI tiered)": 7950,
+    "Data (Cosmos+Search)":        1559,
+    "API Gateway (APIM)":            912,
+    "Compute (Container Apps)":      350,
+    "Monitoring & Logging":          500,
+    "Networking & Security":         250,
+    "Cache & Automation":            400,
+    "Identity & Storage":            165,
 }
-
 generate_cost_distribution_chart(
     categories,
     total_monthly=sum(categories.values()),
-    output_path="agent-output/careflow-ai/03-des-cost-distribution.png",
+    output_path="agent-output/moda-iberica-assistant/03-des-cost-distribution.png",
 )

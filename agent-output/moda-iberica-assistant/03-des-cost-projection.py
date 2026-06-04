@@ -22,31 +22,31 @@ def generate_cost_projection_chart(
 
     for bar, cost in zip(bars, costs):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(costs) * 0.015,
-                f"€{cost:,.0f}", ha="center", va="bottom",
+                f"${cost:,.0f}", ha="center", va="bottom",
                 fontsize=9, fontweight="bold", color="#333")
 
-    z = np.polyfit(x, costs, 1)
-    p = np.poly1d(z)
+    z   = np.polyfit(x, costs, 1)
+    p   = np.poly1d(z)
     x_smooth = np.linspace(0, len(months) - 1, 200)
     ax.plot(x_smooth, p(x_smooth), color="#FF8C00", linewidth=2,
             linestyle="--", alpha=0.8, label="Trend")
 
     if budget_cap is not None:
         ax.axhline(budget_cap, color="#DC3545", linewidth=1.5,
-                   linestyle=":", alpha=0.8, label=f"Budget cap  €{budget_cap:,.0f}")
+                   linestyle=":", alpha=0.8, label=f"Budget cap  ${budget_cap:,.0f}")
 
     ax.set_xticks(x)
     ax.set_xticklabels(months, fontsize=10, color="#333")
-    ax.set_ylabel("Monthly Cost (EUR)", fontsize=10, color="#555")
+    ax.set_ylabel("Monthly Cost (USD)", fontsize=10, color="#555")
 
-    title = "6-Month Cost Projection — CareFlow AI"
+    title = "6-Month Cost Projection - Moda Iberica Assistant"
     ax.set_title(title, fontsize=13, fontweight="bold",
-                 color="#1A1A2E", pad=22 if growth_assumption else 14)
+                 color="#1A1A2E", pad=14 if not growth_assumption else 22)
     if growth_assumption:
         ax.text(0.5, 1.02, growth_assumption, transform=ax.transAxes,
                 ha="center", fontsize=9, color="#888", style="italic")
 
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"€{v:,.0f}"))
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.0f}"))
     ax.tick_params(axis="y", labelsize=9, colors="#666")
     ax.spines[["top", "right"]].set_visible(False)
     ax.spines[["left", "bottom"]].set_color("#DDD")
@@ -61,13 +61,14 @@ def generate_cost_projection_chart(
     print(f"Generated: {output_path}")
 
 
-# 6-month projection based on hospital onboarding ramp
-months = ["Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6"]
-costs  = [1500, 2000, 2500, 2800, 3000, 3200]
+# Phased growth: MVP (Aug) -> Full (Oct) -> Peak (Nov) -> Optimize (Dec)
+# June-July: Dev/test only, Aug: MVP launch, Sep: ramp, Oct: Full, Nov: Black Friday
+months = ["Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026", "Nov 2026", "Dec 2026"]
+costs  = [4200, 7500, 9800, 13500, 31000, 14000]
 
 generate_cost_projection_chart(
     months, costs,
-    output_path="agent-output/careflow-ai/03-des-cost-projection.png",
-    budget_cap=5000,
-    growth_assumption="Based on linear hospital onboarding (5→10→15→20→23→25 hospitals)",
+    output_path="agent-output/moda-iberica-assistant/03-des-cost-projection.png",
+    budget_cap=30000,
+    growth_assumption="Based on phased rollout: MVP (Aug) -> Full Launch (Oct) -> Black Friday peak (Nov, 3x)",
 )
