@@ -1,15 +1,16 @@
 <!-- markdownlint-disable MD013 MD033 MD041 -->
 
-# APEX Accelerator
+# APEX AI
 
 <div align="center">
   <img
-   src="https://capsule-render.vercel.app/api?type=waving&height=180&color=0:0A66C2,50:0078D4,110:00B7C3&text=APEX&fontSize=44&fontColor=FFFFFF&fontAlignY=34&desc=Agentic%20Platform%20Engineering%20eXperience%20for%20Azure&descAlignY=56"
-   alt="APEX banner" />
+   src="https://capsule-render.vercel.app/api?type=waving&height=180&color=0:0A66C2,50:0078D4,110:00B7C3&text=APEX+AI&fontSize=44&fontColor=FFFFFF&fontAlignY=34&desc=AI-First%20Platform%20Engineering%20for%20Azure%20ISVs&descAlignY=56"
+   alt="APEX AI banner" />
 </div>
 
-> **Modernize your Azure Infrastructure with AI.** A production-ready template for building Well-Architected
-> environments using custom Copilot agents, Dev Containers, and the Model Context Protocol (MCP).
+> **Ship production-ready AI workloads on Azure — governed, multi-tenant, and cost-attributed from day one.**
+> A purpose-built accelerator for partners building AI-powered products, using custom Copilot agents,
+> Dev Containers, and the Model Context Protocol (MCP).
 
 [![Azure](https://img.shields.io/badge/Azure-0078D4?logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com)
 [![Bicep](https://img.shields.io/badge/Bicep-0078D4?logo=azure-pipelines&logoColor=white)](https://github.com/Azure/bicep)
@@ -19,19 +20,19 @@
 
 ## About This Repository
 
-This repository is a **spinoff** of the
+**APEX AI** (`rodanthi-alexiou/apex-ai`) is a specialised variant of the
 [APEX — Agentic Platform Engineering eXperience](https://github.com/jonathan-vella/azure-agentic-infraops)
-project created by [Jonathan Vella](https://github.com/jonathan-vella).
+accelerator created by [Jonathan Vella](https://github.com/jonathan-vella).
 
-The original APEX accelerator handles any Azure infrastructure scenario. This repo fine-tunes it for **AI-first ISV workloads** — the messy reality where:
+The original APEX accelerator handles any Azure infrastructure scenario. APEX AI fine-tunes it for
+**AI-first workloads** — the messy reality where:
 
-- You already HAVE a product (brownfield, not greenfield)
 - You need **multi-tenant agent isolation** (your customers don't share data)
 - You need **cost projections per customer** (agents can't eat your margin)
 - You need to pass **security review** before writing a single line of code
 - You need architecture that **scales from 5 customers to 500** without rearchitecting
 
-Added capabilities for ISV scenarios:
+Added capabilities for azure ai scenarios:
 
 - **AI Workload Architecture** — PTU vs PAYG decisions, RAG patterns, content safety gates
 - **Multi-Tenant Patterns** — Per-tenant isolation for AI Search, Cosmos DB, agent runtimes
@@ -83,8 +84,9 @@ the [upstream APEX project](https://github.com/jonathan-vella/azure-agentic-infr
 
 This repository is a **GitHub Template** — not a fork.
 
-1. Click **"Use this template"** → **"Create a new repository"** at the top of this page
-2. Choose an owner and name (e.g., `my-infraops-project`)
+1. Click **"Use this template"** → **"Create a new repository"** at the top of
+   [rodanthi-alexiou/apex-ai](https://github.com/rodanthi-alexiou/apex-ai)
+2. Choose an owner and name (e.g., `my-apex-ai-project`)
 3. Select **Private** (do not use Public)
 4. Click **Create repository**
 
@@ -94,8 +96,8 @@ This repository is a **GitHub Template** — not a fork.
 ### 2. Clone and Open in Dev Container
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/my-infraops-project.git
-cd my-infraops-project
+git clone https://github.com/YOUR-USERNAME/my-apex-ai-project.git
+cd my-apex-ai-project
 code .
 ```
 
@@ -134,7 +136,7 @@ After running, review and commit:
 
 ```bash
 git diff
-git add -A && git commit -m "chore: initialize from template"
+git add -A && git commit -m "chore: initialize apex-ai from template"
 ```
 
 ### 4. Set Up Azure (Optional)
